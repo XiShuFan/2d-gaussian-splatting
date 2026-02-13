@@ -74,7 +74,11 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
 
         # 分割掩码之外不参与训练
         if gt_mask is not None:
-            gt_image[:, gt_mask == 0] = background[:, None]
+            mask = (gt_mask[0] > 0.5).float()   # [H, W]
+            mask = mask.unsqueeze(0)            # [1, H, W]
+            bg = background.view(3, 1, 1)
+            gt_image = gt_image * mask + bg * (1 - mask)
+
 
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
