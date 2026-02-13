@@ -53,6 +53,9 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
     first_iter += 1
     for iteration in range(first_iter, opt.iterations + 1):        
 
+        # 随机背景色增加鲁棒性
+        background = torch.rand((3), device="cuda") if opt.random_background else background
+
         iter_start.record()
 
         gaussians.update_learning_rate(iteration)
@@ -275,6 +278,7 @@ if __name__ == "__main__":
     parser.add_argument("--start_checkpoint", type=str, default = None)
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
+    args.test_iterations.append(args.iterations)
     
     print("Optimizing " + args.model_path)
 
