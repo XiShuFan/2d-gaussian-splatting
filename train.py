@@ -70,6 +70,12 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
         image, viewspace_point_tensor, visibility_filter, radii = render_pkg["render"], render_pkg["viewspace_points"], render_pkg["visibility_filter"], render_pkg["radii"]
         
         gt_image = viewpoint_cam.original_image.cuda()
+        gt_mask = viewpoint_cam.gt_mask.cuda() if viewpoint_cam.gt_mask is not None else None
+
+        # 分割掩码之外不参与训练
+        if gt_mask is not None:
+            gt_image[:, gt_mask == 0] = background[:, None]
+
         Ll1 = l1_loss(image, gt_image)
         loss = (1.0 - opt.lambda_dssim) * Ll1 + opt.lambda_dssim * (1.0 - ssim(image, gt_image))
         
