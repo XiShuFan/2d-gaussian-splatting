@@ -402,7 +402,7 @@ def init_gaussians_with_corr_fast(gaussians, scene, cfg, device, verbose=False, 
         all_new_opacities.append(torch.stack([gaussians._opacity[-1].clone().detach()] * N, dim=0) * 0. - mask_bad_points * (1e1))
 
         dist_points_to_cam1 = torch.linalg.norm(viewpoint_cam1.camera_center.clone().detach() - new_xyz, dim=1, ord=2)
-        all_new_scaling.append(gaussians.scaling_inverse_activation((dist_points_to_cam1 * scaling_factor).unsqueeze(1).repeat(1, 3)))
+        all_new_scaling.append(gaussians.scaling_inverse_activation((dist_points_to_cam1 * scaling_factor).unsqueeze(1).repeat(1, 2)))
         all_new_rotation.append(torch.stack([gaussians._rotation[-1].clone().detach()] * N, dim=0))
         timings['save_gaussians'].append(time.time() - start)
 
@@ -882,7 +882,7 @@ def init_gaussians_with_corr(gaussians, scene, cfg, device, verbose = False, rom
             dist_points_to_cam1 = torch.linalg.norm(viewpoint_cam1.camera_center.clone().detach() - new_xyz,
                                                     dim=1, ord=2)
             #all_new_scaling.append(torch.log(((dist_points_to_cam1) / 1. * scaling_factor).unsqueeze(1).repeat(1, 3)))
-            all_new_scaling.append(gaussians.scaling_inverse_activation((dist_points_to_cam1 * scaling_factor).unsqueeze(1).repeat(1, 3)))
+            all_new_scaling.append(gaussians.scaling_inverse_activation((dist_points_to_cam1 * scaling_factor).unsqueeze(1).repeat(1, 2)))
             all_new_rotation.append(torch.stack([gaussians._rotation[-1].clone().detach()] * N, dim=0))
 
     all_new_xyz = torch.cat(all_new_xyz, dim=0) 
