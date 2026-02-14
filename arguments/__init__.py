@@ -97,6 +97,20 @@ class OptimizationParams(ParamGroup):
         self.random_background = False
         super().__init__(parser, "Optimization Parameters")
 
+
+class DenseInitParams(ParamGroup):
+    def __init__(self, parser):
+        self.dense_init = False
+        self.matches_per_ref = 15_000  # number of matches per reference
+        self.num_refs = 180            # number of reference images
+        self.nns_per_ref = 3           # number of nearest neighbors per reference
+        self.scaling_factor = 0.001
+        self.proj_err_tolerance = 0.01
+        self.roma_model = "outdoors"   # you can change this to "indoors" or "outdoors"
+        self.add_SfM_init = False
+        super().__init__(parser, "Dense Initialization Parameters")
+
+
 def get_combined_args(parser : ArgumentParser):
     cmdlne_string = sys.argv[1:]
     cfgfile_string = "Namespace()"

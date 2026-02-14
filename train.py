@@ -21,18 +21,67 @@ import uuid
 from tqdm import tqdm
 from utils.image_utils import psnr, render_net_image
 from argparse import ArgumentParser, Namespace
-from arguments import ModelParams, PipelineParams, OptimizationParams
+from arguments import ModelParams, PipelineParams, OptimizationParams, DenseInitParams
+from corr_init import init_gaussians_with_corr, init_gaussians_with_corr_fast
 try:
     from torch.utils.tensorboard import SummaryWriter
     TENSORBOARD_FOUND = True
 except ImportError:
     TENSORBOARD_FOUND = False
 
-def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint):
+
+def init_with_corr(dense, gaussians, scene, verbose=False, roma_model=None): 
+    """
+    Initializes image with matchings. Also removes SfM init points.
+    Args:
+        dense: configuration part named init_wC. Check train.yaml
+        verbose: whether you want to print intermediate results. Useful for debug.
+        roma_model: optionally you can pass here preinit RoMA model to avoid reinit 
+            it every time.  
+    """
+    if not dense.dense_init:
+        return None
+    N_splats_at_init = len(gaussians._xyz)
+    print("N_splats_at_init:", N_splats_at_init)
+    if dense.nns_per_ref == 1:
+        init_fn = init_gaussians_with_corr_fast
+    else:
+        init_fn = init_gaussians_with_corr
+    camera_set, selected_indices, visualization_dict = init_fn(
+        gaussians, 
+        scene, 
+        dense, 
+        device="cuda",                                                                                    
+        verbose=verbose,
+        roma_model=roma_model)
+
+    # Remove SfM points and leave only matchings inits
+    if not dense.add_SfM_init:
+        with torch.no_grad():
+            N_splats_after_init = len(gaussians._xyz)
+            print("N_splats_after_init:", N_splats_after_init)
+            mask = torch.concat([torch.ones(N_splats_at_init, dtype=torch.bool),
+                                torch.zeros(N_splats_after_init-N_splats_at_init, dtype=torch.bool)],
+                            axis=0)
+            gaussians.prune_points(mask)
+    with torch.no_grad():
+        gaussians._scaling = gaussians.scaling_inverse_activation(gaussians.scaling_activation(gaussians._scaling)*0.5)
+    return visualization_dict
+
+
+def training(dataset, opt, pipe, dense, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint):
     first_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
     scene = Scene(dataset, gaussians)
+
+    # 稠密化初始点云
+    if dense.dense_init:
+        init_with_corr(dense, gaussians, scene)
+
+    # 输出初始点云查看
+    scene.save("init")
+
     gaussians.training_setup(opt)
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint)
@@ -268,6 +317,7 @@ if __name__ == "__main__":
     lp = ModelParams(parser)
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
+    dp = DenseInitParams(parser)
     parser.add_argument('--ip', type=str, default="127.0.0.1")
     parser.add_argument('--port', type=int, default=6009)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
@@ -288,7 +338,7 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint)
+    training(lp.extract(args), op.extract(args), pp.extract(args), dp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint)
 
     # All done
     print("\nTraining complete.")
