@@ -74,6 +74,7 @@ def training(dataset, opt, pipe, dense, testing_iterations, saving_iterations, c
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
     scene = Scene(dataset, gaussians)
+    gaussians.training_setup(opt)
 
     # 稠密化初始点云
     if dense.dense_init:
@@ -82,7 +83,6 @@ def training(dataset, opt, pipe, dense, testing_iterations, saving_iterations, c
     # 输出初始点云查看
     scene.save("init")
 
-    gaussians.training_setup(opt)
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint)
         gaussians.restore(model_params, opt)
