@@ -309,7 +309,7 @@ class GaussianModel:
             assert len(group["params"]) == 1
             extension_tensor = tensors_dict[group["name"]]
             stored_state = self.optimizer.state.get(group['params'][0], None)
-            print("group name:", group["name"], "origin shape:", group["params"][0].shape, "extension tensor shape:", extension_tensor.shape)
+            # print("group name:", group["name"], "origin shape:", group["params"][0].shape, "extension tensor shape:", extension_tensor.shape)
             if stored_state is not None:
 
                 stored_state["exp_avg"] = torch.cat((stored_state["exp_avg"], torch.zeros_like(extension_tensor)), dim=0)
