@@ -107,7 +107,7 @@ class DenseInitParams(ParamGroup):
         self.scaling_factor = 0.001
         self.proj_err_tolerance = 0.01
         self.roma_model = "outdoors"   # you can change this to "indoors" or "outdoors"
-        self.add_SfM_init = False
+        self.add_SfM_init = True
         super().__init__(parser, "Dense Initialization Parameters")
 
 
